@@ -688,7 +688,9 @@
 
   async function share() {
     const text = '미뤘던 집안일 지금 당장 시작하기';
-    const url = location.href;
+    // Streamlit처럼 iframe 안에서 돌 때는 location.href가 about:srcdoc이라 공유가 깨진다.
+    // 그런 환경에서는 감싸는 쪽이 window.SHARE_URL로 실제 주소를 넣어준다.
+    const url = window.SHARE_URL || location.href;
     if (navigator.share) {
       try {
         await navigator.share({ title: '3분 집안일', text, url });
