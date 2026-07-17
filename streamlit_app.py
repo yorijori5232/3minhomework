@@ -18,11 +18,12 @@ import streamlit.components.v1 as components
 
 ROOT = pathlib.Path(__file__).parent
 
-# iframe 안에서는 location.href를 쓸 수 없으므로 공유 링크로 쓸 실제 주소를 여기서 넣어준다.
-APP_URL = "https://3minhousework.streamlit.app"
+# iframe 안에서는 location.href가 about:srcdoc이라 공유 링크로 쓸 수 없다. 실제 배포 주소를 넣어준다.
+APP_URL = "https://salmblindspot-3minhousework.streamlit.app"
 
-# index.html이 100dvh 기준으로 그려지는데 iframe은 높이가 고정이라 직접 정해줘야 한다.
-FRAME_HEIGHT = 900
+# components.html은 height를 픽셀로 요구한다. 실제 높이는 아래 CSS가 100dvh로 덮어쓰지만,
+# CSS가 먹기 전 첫 프레임에 쓰일 값이라 흔한 화면 높이로 잡아둔다.
+FRAME_HEIGHT = 800
 
 st.set_page_config(page_title="3분 집안일", page_icon="🧽", layout="wide")
 
@@ -53,18 +54,55 @@ def build_html() -> str:
     return html
 
 
-# Streamlit 기본 여백·헤더·푸터를 걷어내 봉지가 화면을 꽉 채우게 한다.
-st.markdown(
-    """
-    <style>
-      header[data-testid="stHeader"], footer { display: none; }
-      [data-testid="stAppViewContainer"] > .main .block-container {
-        padding: 0; max-width: 100%;
-      }
-      [data-testid="stAppViewContainer"] iframe { display: block; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Streamlit이 얹는 것들(헤더, 툴바, Manage app 배지, 여백)을 전부 걷어내고
+# 컴포넌트 iframe을 화면 전체로 늘려서 봉지 배경이 끝까지 차게 만든다.
+HIDE_CHROME = """
+<style>
+  /* Streamlit 기본 UI 제거 (헤더 / 툴바 / Manage app / Made with Streamlit 배지) */
+  header[data-testid="stHeader"],
+  [data-testid="stToolbar"],
+  [data-testid="stDecoration"],
+  [data-testid="stStatusWidget"],
+  [data-testid="manage-app-button"],
+  #MainMenu,
+  footer,
+  [class*="viewerBadge"] {
+    display: none !important;
+  }
 
-components.html(build_html(), height=FRAME_HEIGHT, scrolling=True)
+  /* 페이지 자체 스크롤 제거 — 안쪽 iframe과 이중 스크롤이 되면 모바일에서 화면이 떨린다 */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  [data-testid="stAppViewContainer"],
+  section.main {
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  [data-testid="stAppViewBlockContainer"],
+  .block-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  [data-testid="stVerticalBlock"] { gap: 0 !important; }
+
+  /* iframe '만' 화면 전체로 늘린다.
+     element-container 전체에 높이를 주면 이 <style>이 들어있는 빈 컨테이너까지
+     같은 높이를 먹어서 iframe을 아래로 밀어내고 흰 여백이 생긴다. */
+  iframe[data-testid="stIFrame"] {
+    height: 100dvh !important;
+    width: 100% !important;
+    display: block !important;
+    border: 0 !important;
+  }
+</style>
+"""
+
+st.markdown(HIDE_CHROME, unsafe_allow_html=True)
+
+components.html(build_html(), height=FRAME_HEIGHT, scrolling=False)
